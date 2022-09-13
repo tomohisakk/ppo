@@ -15,12 +15,12 @@ def train():
 	print("============================================================================================")
 
 	####### initialize environment hyperparameters ######
-	env_name ="static_0913"
+	env_name ="static_0914"
 	env = MEDAEnv(p=0.9)
 
 	max_ep_len = env.max_step                   # max timesteps in one episode
-	n_games = 1000
-	n_epoches = 10000
+	n_games = 100
+	n_epoches = 100000
 
 	#####################################################
 
@@ -32,8 +32,8 @@ def train():
 	eps_clip = 0.1          # clip parameter for PPO
 	gamma = 0.99            # discount factor
 
-	lr_actor = 1e-8      # learning rate for actor network
-	lr_critic = 1e-7       # learning rate for critic network
+	lr_actor = 1e-7      # learning rate for actor network
+	lr_critic = 1e-6       # learning rate for critic network
 	#####################################################
 
 	print("training environment name : " + env_name)
@@ -161,6 +161,13 @@ def train():
 
 			log_running_reward += current_ep_reward
 			log_running_episodes += 1
+			if i_episode % 10 == 0:
+#				print("--------------------------------------------------------------------------------------------")
+#				print("saving model at : " + checkpoint_path)
+				ppo_agent.save(checkpoint_path)
+#				print("model saved")
+#				print("Elapsed Time  : ", datetime.now().replace(microsecond=0) - start_time)
+#				print("--------------------------------------------------------------------------------------------")
 
 			# update PPO agent
 			ppo_agent.update()
@@ -170,18 +177,17 @@ def train():
 		i_epoch += 1
 
 		# printing average reward
-		if i_epoch % 1 == 0:
+		if i_epoch % 10 == 0:
 			# print average reward till last episode
 			print_avg_reward = print_running_reward / print_running_episodes
 			print_avg_reward = round(print_avg_reward, 2)
 
-			print("Episode : {} \t\t Average Reward : {}".format(i_epoch, print_avg_reward))
-
+			print("Episode : {} \t\t Average Reward : \t\t {} Elapsed Time  : ".format(i_epoch, print_avg_reward), datetime.now().replace(microsecond=0) - start_time)
 			print_running_reward = 0
 			print_running_episodes = 0
 
 		# save model weights
-		if i_epoch % 10 == 0:
+		if i_epoch % 1 == 0:
 			# log average reward till last episode
 			log_avg_reward = log_running_reward / log_running_episodes
 			log_avg_reward = round(log_avg_reward, 4)
@@ -191,13 +197,6 @@ def train():
 
 			log_running_reward = 0
 			log_running_episodes = 0
-
-			print("--------------------------------------------------------------------------------------------")
-			print("saving model at : " + checkpoint_path)
-			ppo_agent.save(checkpoint_path)
-			print("model saved")
-			print("Elapsed Time  : ", datetime.now().replace(microsecond=0) - start_time)
-			print("--------------------------------------------------------------------------------------------")
 
 	log_f.close()
 	env.close()
