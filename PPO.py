@@ -8,7 +8,6 @@ print("=========================================================================
 # set device to cpu or cuda
 device = T.device('cpu')
 
-
 if(T.cuda.is_available()): 
 	device = T.device('cuda:0') 
 	T.cuda.empty_cache()
@@ -38,7 +37,7 @@ class RolloutBuffer:
 class ActorCritic(nn.Module):
 	def __init__(self, state_dim, action_dim):
 		super(ActorCritic, self).__init__()
-		
+
 		# actor
 		self.actor = nn.Sequential(
 						nn.Linear(state_dim, 128),
