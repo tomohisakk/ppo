@@ -15,23 +15,18 @@ def train():
 	print("============================================================================================")
 
 	####### initialize environment hyperparameters ######
-	env_name ="test"
+	env_name ="static_0913"
 	env = MEDAEnv(p=0.9)
 
 	max_ep_len = env.max_step                   # max timesteps in one episode
-	max_training_timesteps = int(1e9)   # break training loop if timeteps > max_training_timesteps
+	n_games = 1000
+	n_epoches = 10000
 
-	print_freq = max_ep_len * 100        # print avg reward in the interval (in num timesteps)
-	log_freq = max_ep_len * 2           # log avg reward in the interval (in num timesteps)
-	save_model_freq = int(1e5)          # save model frequency (in num timesteps)
-
-	action_std = 0.6                    # starting std for action distribution (Multivariate Normal)
 	#####################################################
 
 	## Note : print/log frequencies should be > than max_ep_len
 
 	################ PPO hyperparameters ################
-	update_timestep = max_ep_len * 10      # update policy every n timesteps
 	K_epochs = 64               # update policy for K epochs in one PPO update
 
 	eps_clip = 0.1          # clip parameter for PPO
@@ -39,8 +34,6 @@ def train():
 
 	lr_actor = 1e-8      # learning rate for actor network
 	lr_critic = 1e-7       # learning rate for critic network
-
-	random_seed = 0         # set random seed if required (0 = no random seed)
 	#####################################################
 
 	print("training environment name : " + env_name)
@@ -88,18 +81,16 @@ def train():
 		os.makedirs(directory)
 
 
-	checkpoint_path = directory + "PPO_{}_{}_{}.pth".format(env_name, random_seed, run_num_pretrained)
+	checkpoint_path = directory + "PPO_{}_{}.pth".format(env_name, run_num_pretrained)
 	print("save checkpoint path : " + checkpoint_path)
 	#####################################################
 
 
 	############# print all hyperparameters #############
 	print("--------------------------------------------------------------------------------------------")
-	print("max training timesteps : ", max_training_timesteps)
+	print("max epoches : ", n_epoches)
+	print("games per a epoch : ", n_games)
 	print("max timesteps per episode : ", max_ep_len)
-	print("model saving frequency : " + str(save_model_freq) + " timesteps")
-	print("log frequency : " + str(log_freq) + " timesteps")
-	print("printing average reward over episodes in last : " + str(print_freq) + " timesteps")
 	print("--------------------------------------------------------------------------------------------")
 	print("state space dimension : ", state_dim)
 	print("action space dimension : ", action_dim)
@@ -107,7 +98,6 @@ def train():
 
 	print("Initializing a discrete action space policy")
 	print("--------------------------------------------------------------------------------------------")
-	print("PPO update frequency : " + str(update_timestep) + " timesteps")
 	print("PPO K epochs : ", K_epochs)
 	print("PPO epsilon clip : ", eps_clip)
 	print("discount factor (gamma) : ", gamma)
@@ -122,7 +112,7 @@ def train():
 	################# training procedure ################
 
 	# initialize a PPO agent
-	ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, action_std)
+	ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip)
 
 	# track total training time
 	start_time = datetime.now().replace(microsecond=0)
@@ -143,75 +133,71 @@ def train():
 
 	time_step = 0
 	i_episode = 0
+	i_epoch = 0
 
 	# training loop
-	while time_step <= max_training_timesteps:
+	while i_epoch <= n_epoches:
+		i_episode = 0
+		while i_episode <= n_games:
+			state = env.reset()
+			current_ep_reward = 0
+			for t in range(1, max_ep_len+1):
+				action = ppo_agent.select_action(state)
+				state, reward, done, _ = env.step(action)
 
-		state = env.reset()
-		current_ep_reward = 0
+				# saving reward and is_terminals
+				ppo_agent.buffer.rewards.append(reward)
+				ppo_agent.buffer.is_terminals.append(done)
 
-		for t in range(1, max_ep_len+1):
+				time_step +=1
+				current_ep_reward += reward
 
-			# select action with policy
-			action = ppo_agent.select_action(state)
-			state, reward, done, _ = env.step(action)
+				# break; if the episode is over
+				if done:
+					break
 
-			# saving reward and is_terminals
-			ppo_agent.buffer.rewards.append(reward)
-			ppo_agent.buffer.is_terminals.append(done)
+			print_running_reward += current_ep_reward
+			print_running_episodes += 1
 
-			time_step +=1
-			current_ep_reward += reward
+			log_running_reward += current_ep_reward
+			log_running_episodes += 1
 
 			# update PPO agent
-			if time_step % update_timestep == 0:
-				ppo_agent.update()
+			ppo_agent.update()
 
-			# log in logging file
-			if time_step % log_freq == 0:
+			i_episode += 1
 
-				# log average reward till last episode
-				log_avg_reward = log_running_reward / log_running_episodes
-				log_avg_reward = round(log_avg_reward, 4)
+		i_epoch += 1
 
-				log_f.write('{},{},{}\n'.format(i_episode, time_step, log_avg_reward))
-				log_f.flush()
+		# printing average reward
+		if i_epoch % 1 == 0:
+			# print average reward till last episode
+			print_avg_reward = print_running_reward / print_running_episodes
+			print_avg_reward = round(print_avg_reward, 2)
 
-				log_running_reward = 0
-				log_running_episodes = 0
+			print("Episode : {} \t\t Average Reward : {}".format(i_epoch, print_avg_reward))
 
-			# printing average reward
-			if time_step % print_freq == 0:
+			print_running_reward = 0
+			print_running_episodes = 0
 
-				# print average reward till last episode
-				print_avg_reward = print_running_reward / print_running_episodes
-				print_avg_reward = round(print_avg_reward, 2)
+		# save model weights
+		if i_epoch % 10 == 0:
+			# log average reward till last episode
+			log_avg_reward = log_running_reward / log_running_episodes
+			log_avg_reward = round(log_avg_reward, 4)
 
-				print("Episode : {} \t\t Timestep : {} \t\t Average Reward : {}".format(i_episode, time_step, print_avg_reward))
+			log_f.write('{},{},{}\n'.format(i_episode, time_step, log_avg_reward))
+			log_f.flush()
 
-				print_running_reward = 0
-				print_running_episodes = 0
+			log_running_reward = 0
+			log_running_episodes = 0
 
-			# save model weights
-			if time_step % save_model_freq == 0:
-				print("--------------------------------------------------------------------------------------------")
-				print("saving model at : " + checkpoint_path)
-				ppo_agent.save(checkpoint_path)
-				print("model saved")
-				print("Elapsed Time  : ", datetime.now().replace(microsecond=0) - start_time)
-				print("--------------------------------------------------------------------------------------------")
-
-			# break; if the episode is over
-			if done:
-				break
-
-		print_running_reward += current_ep_reward
-		print_running_episodes += 1
-
-		log_running_reward += current_ep_reward
-		log_running_episodes += 1
-
-		i_episode += 1
+			print("--------------------------------------------------------------------------------------------")
+			print("saving model at : " + checkpoint_path)
+			ppo_agent.save(checkpoint_path)
+			print("model saved")
+			print("Elapsed Time  : ", datetime.now().replace(microsecond=0) - start_time)
+			print("--------------------------------------------------------------------------------------------")
 
 	log_f.close()
 	env.close()
