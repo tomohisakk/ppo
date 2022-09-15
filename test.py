@@ -25,26 +25,8 @@ def _gen_random_map():
 def test():
 	print("============================================================================================")
 
-	################## hyperparameters ##################
-
-	# env_name = "CartPole-v1"
-	# has_continuous_action_space = False
-	# max_ep_len = 400
-	# action_std = None
-
-	# env_name = "LunarLander-v2"
-	# has_continuous_action_space = False
-	# max_ep_len = 300
-	# action_std = None
-
-	# env_name = "BipedalWalker-v2"
-	# has_continuous_action_space = True
-	# max_ep_len = 1500           # max timesteps in one episode
-	# action_std = 0.1            # set same std for action distribution which was used while saving
-
-	env_name = "Static_Env"
-	max_ep_len = 1000           # max timesteps in one episode
-	action_std = 0.1            # set same std for action distribution which was used while saving
+	env_name = "static_0915"
+	max_ep_len = 100           # max timesteps in one episode
 
 	render = True              # render environment on screen
 	frame_delay = 0             # if required; add delay b/w frames
@@ -69,15 +51,14 @@ def test():
 	action_dim = 4
 
 	# initialize a PPO agent
-	ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, action_std)
+	ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip)
 
 	# preTrained weights directory
 
-	random_seed = 0             #### set this to load a particular checkpoint trained on random seed
 	run_num_pretrained = 0      #### set this to load a particular checkpoint num
 
 	directory = "PPO_preTrained" + '/' + env_name + '/'
-	checkpoint_path = directory + "PPO_{}_{}_{}.pth".format(env_name, random_seed, run_num_pretrained)
+	checkpoint_path = directory + "PPO_{}_{}.pth".format(env_name, run_num_pretrained)
 	print("loading network from : " + checkpoint_path)
 
 	ppo_agent.load(checkpoint_path)

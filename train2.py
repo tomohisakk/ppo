@@ -16,7 +16,7 @@ def train():
 	print("============================================================================================")
 
 	####### initialize environment hyperparameters ######
-	env_name ="test"
+	env_name ="static_0915"
 	env = MEDAEnv(p=0.9)
 
 	max_ep_len = env.max_step                   # max timesteps in one episode
