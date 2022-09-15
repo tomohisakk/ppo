@@ -7,7 +7,7 @@ from torch.distributions import Categorical
 print("============================================================================================")
 # set device to cpu or cuda
 device = T.device('cpu')
-
+"""
 if(T.cuda.is_available()): 
 	device = T.device('cuda:0') 
 	T.cuda.empty_cache()
@@ -15,7 +15,7 @@ if(T.cuda.is_available()):
 else:
 	print("Device set to : cpu")
 print("============================================================================================")
-
+"""
 
 ################################## PPO Policy ##################################
 class RolloutBuffer:

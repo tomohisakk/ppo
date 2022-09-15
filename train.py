@@ -19,8 +19,8 @@ def train():
 	env = MEDAEnv(p=0.9)
 
 	max_ep_len = env.max_step                   # max timesteps in one episode
-	n_games = 1000
-	n_epoches = 10000
+	n_games = 100
+	n_epoches = 100000
 
 	#####################################################
 
@@ -32,8 +32,8 @@ def train():
 	eps_clip = 0.1          # clip parameter for PPO
 	gamma = 0.99            # discount factor
 
-	lr_actor = 1e-8      # learning rate for actor network
-	lr_critic = 1e-7       # learning rate for critic network
+	lr_actor = 1e-6      # learning rate for actor network
+	lr_critic = 1e-5       # learning rate for critic network
 	#####################################################
 
 	print("training environment name : " + env_name)
@@ -181,7 +181,7 @@ def train():
 			print_running_episodes = 0
 
 		# save model weights
-		if i_epoch % 10 == 0:
+		if i_epoch % 1 == 0:
 			# log average reward till last episode
 			log_avg_reward = log_running_reward / log_running_episodes
 			log_avg_reward = round(log_avg_reward, 4)
