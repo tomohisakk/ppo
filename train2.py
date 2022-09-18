@@ -19,13 +19,13 @@ def train():
 	####### initialize environment hyperparameters ######
 	env = MEDAEnv(p=0.9)
 
-	K_epochs = 16               # update policy for K epochs in one PPO update
+	K_epochs = 64               # update policy for K epochs in one PPO update
 
 	eps_clip = 0.1          # clip parameter for PPO
 	gamma = 0.99            # discount factor
 
-	lr_actor = 1e-9      # learning rate for actor network
-	lr_critic = 1e-8       # learning rate for critic network
+	lr_actor = 3e-7      # learning rate for actor network
+	lr_critic = 1e-6       # learning rate for critic network
 
 	env_name = "lr_actor=" + str(lr_actor) + "_critic=" + str(lr_critic)
 	writer = SummaryWriter(comment=env_name)
