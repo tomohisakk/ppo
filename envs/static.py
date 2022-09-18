@@ -29,9 +29,9 @@ class MEDAEnv:
 		self.p = p
 		self.actions = Actions
 		self.action_space = len(self.actions)
-		self.observation_space = (64,)
+		self.observation_space = w*h
 		self.n_steps = 0
-		self.max_step = 100
+		self.max_step = 2*(w+h)
 
 		self.state = (0,0)
 		self.goal = (w-1, h-1)
@@ -102,6 +102,8 @@ class MEDAEnv:
 			done = True
 		elif dist < _dist:
 			reward = 0.5
+		elif dist == _dist:
+			reward = -0.5
 		else:
 			reward = -0.8
 
@@ -161,11 +163,11 @@ class MEDAEnv:
 		for i in range(self.w):
 			for j in range(self.h):
 				if self.map[j][i] == self.maps.State:
-					obs[j][i] = 3
+					obs[j][i] = 3/3
 				elif self.map[j][i] == self.maps.Goal:
-					obs[j][i] = 2
+					obs[j][i] = 2/3
 				elif self.map[j][i] == self.maps.Dynanic_module or self.map[j][i] == self.maps.Static_module:
-					obs[j][i] = 1
+					obs[j][i] = 1/3
 #		print(obs)
 
 		obs = np.reshape(obs, -1)

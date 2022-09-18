@@ -14,7 +14,6 @@ if(T.cuda.is_available()):
 	print("Device set to : " + str(T.cuda.get_device_name(device)))
 else:
 	print("Device set to : cpu")
-print("============================================================================================")
 """
 
 ################################## PPO Policy ##################################
@@ -40,20 +39,20 @@ class ActorCritic(nn.Module):
 
 		# actor
 		self.actor = nn.Sequential(
-						nn.Linear(state_dim, 128),
+						nn.Linear(state_dim, 512),
 						nn.Tanh(),
-						nn.Linear(128, 32),
+						nn.Linear(512, 128),
 						nn.Tanh(),
-						nn.Linear(32, action_dim),
+						nn.Linear(128, action_dim),
 						nn.Softmax(dim=-1)
 					)
 		# critic
 		self.critic = nn.Sequential(
-						nn.Linear(state_dim, 128),
+						nn.Linear(state_dim, 512),
 						nn.Tanh(),
-						nn.Linear(128, 32),
+						nn.Linear(512, 128),
 						nn.Tanh(),
-						nn.Linear(32, 1)
+						nn.Linear(128, 1)
 					)
 
 	def forward(self):
@@ -79,12 +78,14 @@ class ActorCritic(nn.Module):
 
 
 class PPO:
-	def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip):
+	def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, writer):
 		self.gamma = gamma
 		self.eps_clip = eps_clip
 		self.K_epochs = K_epochs
 		
 		self.buffer = RolloutBuffer()
+
+		self.writer = writer
 
 		self.policy = ActorCritic(state_dim, action_dim).to(device)
 		self.optimizer = T.optim.Adam([
@@ -108,7 +109,7 @@ class PPO:
 
 		return action.item()
 
-	def update(self):
+	def update(self, i_episode):
 		# Monte Carlo estimate of returns
 		rewards = []
 		discounted_reward = 0
@@ -144,14 +145,25 @@ class PPO:
 			surr1 = ratios * advantages
 			surr2 = T.clamp(ratios, 1-self.eps_clip, 1+self.eps_clip) * advantages
 
+			loss_value = self.MseLoss(state_values, rewards)
+			loss_policy = -T.min(surr1, surr2)
 			# final loss of clipped objective PPO
-			loss = -T.min(surr1, surr2) + 0.5*self.MseLoss(state_values, rewards) - 0.01*dist_entropy
+			loss = loss_policy + 0.5*loss_value - 0.01*dist_entropy
 
 			# take gradient step
 			self.optimizer.zero_grad()
 			loss.mean().backward()
 			self.optimizer.step()
-			
+		
+		loss_f = loss.mean().to(T.float32)
+		loss_policy_f = loss_policy.mean().to(T.float32)
+		dist_entropy_f = dist_entropy.mean().to(T.float32)
+
+		self.writer.add_scalar("loss_total", loss_f, i_episode)
+		self.writer.add_scalar("entropy", dist_entropy_f, i_episode)
+		self.writer.add_scalar("loss_value", loss_value, i_episode)
+		self.writer.add_scalar("loss_policy", loss_policy_f, i_episode)
+		
 		# Copy new weights into old policy
 		self.policy_old.load_state_dict(self.policy.state_dict())
 

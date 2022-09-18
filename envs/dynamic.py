@@ -29,9 +29,9 @@ class MEDAEnv:
 		self.p = p
 		self.actions = Actions
 		self.action_space = len(self.actions)
-		self.observation_shape = (64,)
+		self.observation_space = w*h
 		self.n_steps = 0
-		self.max_step = 100
+		self.max_step = 2*(w+h)
 
 		self.state = (0,0)
 		self.goal = (w-1, h-1)
